@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b12">
+<title>IPL Auction Arena</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #080b12;
+  --panel: #111722;
+  --panel2: #171f2c;
+  --border: #283140;
+  --text: #f5f7fa;
+  --muted: #8d99ab;
+  --gold: #ffb800;
+  --green: #00d084;
+  --red: #ff4d61;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, sans-serif;
+  min-height: 100vh;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+nav {
+  height: 68px;
+  padding: 0 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: #090d14;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.logo {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.logo span {
+  color: var(--gold);
+}
+
+.nav-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-dot {
+  height: 8px;
+  width: 8px;
+  display: inline-block;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00d08466;
+}
+
+.container {
+  width: min(1100px, 94%);
+  margin: 0 auto;
+  padding: 40px 0 70px;
+}
+
+.hero {
+  text-align: center;
+  padding: 35px 10px 45px;
+}
+
+.eyebrow {
+  color: var(--gold);
+  background: #211b0c;
+  border: 1px solid #4a3912;
+  border-radius: 30px;
+  padding: 8px 13px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: clamp(38px, 7vw, 75px);
+  font-weight: 900;
+  letter-spacing: -4px;
+  line-height: 1.05;
+}
+
+h1 span {
+  color: var(--gold);
+}
+
+.hero p {
+  color: var(--muted);
+  margin-top: 17px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 35px;
+  margin-top: 27px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 18px;
+}
+
+.stat small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 25px;
+  min-width: 0;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 7px;
+  margin-bottom: 22px;
+  line-height: 1.6;
+}
+
+.label {
+  display: block;
+  color: #aeb8c8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin: 17px 0 9px;
+  text-transform: uppercase;
+}
+
+input, select {
+  width: 100%;
+  background: #0b1018;
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 13px;
+  outline: none;
+  font-size: 13px;
+}
+
+input:focus, select:focus {
+  border-color: var(--gold);
+}
+
+select option {
+  background: #111722;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.team {
+  background: var(--panel2);
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px 2px;
+  text-align: center;
+  transition: .2s;
+}
+
+.team:hover {
+  transform: translateY(-2px);
+  border-color: #677387;
+}
+
+.team.selected {
+  background: #302710;
+  border-color: var(--gold);
+  box-shadow: 0 0 12px #ffb80012;
+}
+
+.team .abbr {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.team .full {
+  font-size: 7px;
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 9px;
+  padding: 13px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  transition: .15s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.primary {
+  background: var(--gold);
+  color: #141414;
+}
+
+.secondary {
+  background: #222c3b;
+  color: white;
+  border: 1px solid #344052;
+}
+
+.danger {
+  background: #381b25;
+  color: #ff8190;
+  border: 1px solid #60303c;
+}
+
+.full-btn {
+  width: 100%;
+  margin-top: 17px;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #b9c2d0;
+  font-size: 12px;
+  padding: 15px 0;
+}
+
+.toggle-row input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.room-item strong {
+  font-size: 12px;
+}
+
+.room-item small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.join-btn {
+  background: #302710;
+  border: 1px solid #59451a;
+  color: var(--gold);
+  border-radius: 7px;
+  padding: 8px 11px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 22px 5px;
+}
+
+.room-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
+.room-code {
+  color: var(--gold);
+  background: #211b0c;
+  border: 1px solid #493913;
+  padding: 8px 13px;
+  border-radius: 8px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+}
+
+.team-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.team-card {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 13px;
+}
+
+.team-card strong {
+  font-size: 12px;
+}
+
+.team-card small {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.auction-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+}
+
+.player-card {
+  background:
+    radial-gradient(circle at 90% 10%, #44330e 0, transparent 45%),
+    #111722;
+  border: 1px solid #3b3425;
+  border-radius: 15px;
+  padding: 25px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.player-role {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+
+.player-name {
+  font-size: clamp(25px, 4vw, 45px);
+  font-weight: 900;
+  letter-spacing: -2px;
+  margin-top: 14px;
+}
+
+.player-country {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.bid-amount {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--gold);
+  margin-top: 25px;
+}
+
+.bid-label {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.bid-controls {
+  display: flex;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.bid-controls .btn {
+  flex: 1;
+}
+
+.purse-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 20px;
+}
+
+.purse-card h3 {
+  font-size: 12px;
+  margin-bottom: 15px;
+}
+
+.purse-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 9px 0;
+  border-bottom: 1px solid #222b37;
+}
+
+.purse-row span:last-child {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.purse-row:last-child {
+  border-bottom: 0;
+}
+
+.host-controls {
+  margin-top: 20px;
+}
+
+.host-controls .btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.player-pool {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.pool-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0c1119;
+  border: 1px solid var(--border);
+  padding: 11px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.pool-item button {
+  background: #302710;
+  border: 1px solid #59451a;
+  color: var(--gold);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #202837;
+  border: 1px solid #39465b;
+  border-radius: 9px;
+  padding: 13px 20px;
+  font-size: 12px;
+  z-index: 100;
+  display: none;
+  max-width: 90%;
+  box-shadow: 0 10px 30px #0008;
+}
+
+footer {
+  text-align: center;
+  color: #536073;
+  padding: 35px 15px;
+  font-size: 10px;
+}
+
+@media(max-width:760px) {
+  nav {
+    height: 60px;
+    padding: 0 4%;
+  }
+
+  .logo {
+    font-size: 15px;
+  }
+
+  .container {
+    width: 92%;
+    padding-top: 25px;
+  }
+
+  .hero {
+    padding: 30px 0;
+  }
+
+  h1 {
+    letter-spacing: -2px;
+  }
+
+  .stats {
+    gap: 20px;
+  }
+
+  .layout, .room-grid, .auction-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 19px;
+  }
+
+  .teams {
+    gap: 5px;
+  }
+
+  .team {
+    padding: 10px 1px;
+  }
+
+  .team .abbr {
+    font-size: 11px;
+  }
+
+  .team .full {
+    font-size: 6px;
+  }
+
+  .auction-grid {
+    gap: 12px;
+  }
+
+  .player-card {
+    min-height: 250px;
+    padding: 20px;
+  }
+
+  .player-name {
+    font-size: 35px;
+  }
+
+  .bid-amount {
+    font-size: 30px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <div class="logo">IPL <span>AUCTION</span> ARENA</div>
+  <div class="nav-right">
+    <span class="status-dot"></span>
+    <span id="connectionText">CONNECTING</span>
+  </div>
+</nav>
+
+<main class="container">
+
+<!-- HOME -->
+<section id="homeScreen">
+
+  <div class="hero">
+    <div class="eyebrow">MULTIPLAYER AUCTION • SEASON 2026</div>
+    <h1>Build your <span>dynasty.</span></h1>
+    <p>
+      Pick your franchise. Manage your purse.<br>
+      Assemble the ultimate squad.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><strong>10</strong><small>Franchises</small></div>
+      <div class="stat"><strong>₹120 Cr</strong><small>Starting purse</small></div>
+      <div class="stat"><strong>LIVE</strong><small>Multiplayer</small></div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <div class="panel">
+      <div class="panel-title">Enter the arena</div>
+      <div class="panel-sub">Create a room or join your friends.</div>
+
+      <label class="label">Manager name</label>
+      <input id="managerName" maxlength="20" placeholder="Enter your name">
+
+      <label class="label">Choose your franchise</label>
+      <div class="teams" id="franchiseGrid"></div>
+
+      <div class="divider"></div>
+
+      <label class="label">Room privacy</label>
+      <div class="toggle-row">
+        <span>Private room (invite code only)</span>
+        <input type="checkbox" id="privateRoom">
+      </div>
+
+      <button class="btn primary full-btn" onclick="createRoom()">
+        + CREATE AUCTION ROOM
+      </button>
+
+      <div class="divider"></div>
+
+      <label class="label">Join with room code</label>
+      <input id="joinCode" maxlength="6" placeholder="Enter 6-character code">
+
+      <button class="btn secondary full-btn" onclick="joinRoom()">
+        JOIN PRIVATE ROOM →
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🌐 Public rooms</div>
+      <div class="panel-sub">Join an open auction with other managers.</div>
+
+      <div class="room-list" id="publicRooms">
+        <div class="empty">Searching for public rooms...</div>
+      </div>
+
+      <button class="btn secondary full-btn" onclick="refreshRooms()">
+        ↻ REFRESH ROOMS
+      </button>
+
+      <div class="divider"></div>
+
+      <div class="panel-title">Auction rules</div>
+      <div class="panel-sub">
+        • Starting purse: ₹120 crore<br>
+        • 10 IPL franchises per room<br>
+        • Host controls the auction<br>
+        • Highest bidder wins the player<br>
+        • Live bidding updates for everyone
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ROOM LOBBY -->
+<section id="lobbyScreen" class="hidden">
+
+  <div class="room-header">
+    <div>
+      <div class="eyebrow">AUCTION LOBBY</div>
+      <h2 id="lobbyTitle">Waiting for managers</h2>
+    </div>
+
+    <div class="room-code" id="roomCodeDisplay" onclick="copyRoomCode()">
+      CODE: ------
+    </div>
+  </div>
+
+  <div class="room-grid">
+
+    <div class="panel">
+      <div class="panel-title">🏏 Franchises</div>
+      <div class="panel-sub">Managers joining the auction.</div>
+
+      <div class="team-list" id="lobbyTeams"></div>
+
+      <div class="divider"></div>
+
+      <button class="btn primary full-btn hidden" id="startAuctionBtn" onclick="startAuction()">
+        START AUCTION →
+      </button>
+
+      <p class="panel-sub" id="lobbyMessage" style="margin-top:15px">
+        Waiting for managers to join...
+      </p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Room settings</div>
+      <div class="panel-sub">Auction configuration</div>
+
+      <div class="purse-row"><span>Starting purse</span><span>₹120 Cr</span></div>
+      <div class="purse-row"><span>Teams</span><span>10</span></div>
+      <div class="purse-row"><span>Auction type</span><span>Custom</span></div>
+      <div class="purse-row"><span>Mode</span><span>Multiplayer</span></div>
+
+      <div class="divider"></div>
+
+      <button class="btn secondary full-btn" onclick="leaveRoom()">← LEAVE ROOM</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- AUCTION SCREEN -->
+<section id="auctionScreen" class="hidden">
+
+  <div class="room-header">
+    <div>
+      <div class="eyebrow">LIVE AUCTION</div>
+      <h2>IPL Auction Arena</h2>
+    </div>
+    <div class="room-code" id="auctionRoomCode">------</div>
+  </div>
+
+  <div class="auction-grid">
+
+    <div>
+      <div class="player-card">
+
+        <div>
+          <div class="player-role" id="playerRole">PLAYER AUCTION</div>
+          <div class="player-name" id="playerName">Waiting for player...</div>
+          <div class="player-country" id="playerCountry">Select a player to begin</div>
+        </div>
+
+        <div>
+          <div class="bid-label">Current bid</div>
+          <div class="bid-amount" id="currentBid">₹0.00 Cr</div>
+          <div class="player-country" id="highestBidder">Waiting for bids</div>
+
+          <div class="bid-controls">
+            <button class="btn secondary" onclick="placeBid(0.25)">+ ₹0.25 Cr</button>
+            <button class="btn secondary" onclick="placeBid(0.50)">+ ₹0.50 Cr</button>
+            <button class="btn primary" onclick="placeBid(1)">+ ₹1 Cr</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="panel" style="margin-top:15px">
+        <div class="panel-title">Your squad</div>
+        <div class="panel-sub" id="mySquadInfo">Join a franchise to participate.</div>
+        <div id="mySquad"></div>
+      </div>
+    </div>
+
+    <div>
+
+      <div class="purse-card">
+        <h3>💰 TEAM PURSES</h3>
+        <div id="purseList"></div>
+      </div>
+
+      <div class="panel host-controls hidden" id="hostControls">
+        <div class="panel-title">🎙 Auctioneer</div>
+        <div class="panel-sub">Host controls — select a player to auction.</div>
+
+        <label class="label">Player name</label>
+        <input id="customPlayerName" placeholder="e.g. Virat Kohli">
+
+        <label class="label">Role</label>
+        <select id="customPlayerRole">
+          <option>Batter</option>
+          <option>Bowler</option>
+          <option>All-rounder</option>
+          <option>Wicketkeeper</option>
+        </select>
+
+        <label class="label">Country</label>
+        <input id="customPlayerCountry" value="India">
+
+        <label class="label">Base price (Cr)</label>
+        <select id="customPlayerBase">
+          <option value="0.2">₹0.20 Cr</option>
+          <option value="0.3">₹0.30 Cr</option>
+          <option value="0.5" selected>₹0.50 Cr</option>
+          <option value="0.75">₹0.75 Cr</option>
+          <option value="1">₹1.00 Cr</option>
+          <option value="2">₹2.00 Cr</option>
+        </select>
+
+        <button class="btn primary full-btn" onclick="nextPlayer()">
+          ▶ PUT PLAYER UP FOR AUCTION
+        </button>
+
+        <button class="btn secondary full-btn" onclick="sellPlayer()">
+          🔨 SOLD
+        </button>
+
+        <button class="btn danger full-btn" onclick="unsoldPlayer()">
+          UNSOLD
+        </button>
+
+        <div class="divider"></div>
+
+        <div class="panel-title">Quick player pool</div>
+        <div class="panel-sub">Select a player to load details.</div>
+        <div class="player-pool" id="quickPlayerPool"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+</main>
+
+<footer>
+  IPL AUCTION ARENA • FAN-MADE GAME • NOT AFFILIATED WITH THE IPL
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const socket = io();
+
+const franchises = [
+  { abbr: "CSK", name: "Chennai Super Kings" },
+  { abbr: "MI", name: "Mumbai Indians" },
+  { abbr: "RCB", name: "Royal Challengers" },
+  { abbr: "KKR", name: "Kolkata Knight Riders" },
+  { abbr: "SRH", name: "Sunrisers Hyderabad" },
+  { abbr: "RR", name: "Rajasthan Royals" },
+  { abbr: "DC", name: "Delhi Capitals" },
+  { abbr: "PBKS", name: "Punjab Kings" },
+  { abbr: "GT", name: "Gujarat Titans" },
+  { abbr: "LSG", name: "Lucknow Super Giants" }
+];
+
+const quickPlayers = [
+  { name: "Virat Kohli", role: "Batter", country: "India", basePrice: 2 },
+  { name: "Rohit Sharma", role: "Batter", country: "India", basePrice: 2 },
+  { name: "MS Dhoni", role: "Wicketkeeper", country: "India", basePrice: 0.5 },
+  { name: "Jasprit Bumrah", role: "Bowler", country: "India", basePrice: 2 },
+  { name: "Hardik Pandya", role: "All-rounder", country: "India", basePrice: 1 },
+  { name: "Ravindra Jadeja", role: "All-rounder", country: "India", basePrice: 1 },
+  { name: "Suryakumar Yadav", role: "Batter", country: "India", basePrice: 2 },
+  { name: "Rishabh Pant", role: "Wicketkeeper", country: "India", basePrice: 2 },
+  { name: "Shubman Gill", role: "Batter", country: "India", basePrice: 2 },
+  { name: "Sanju Samson", role: "Wicketkeeper", country: "India", basePrice: 1 },
+  { name: "Rashid Khan", role: "Bowler", country: "Afghanistan", basePrice: 2 },
+  { name: "Travis Head", role: "Batter", country: "Australia", basePrice: 1 },
+  { name: "Pat Cummins", role: "Bowler", country: "Australia", basePrice: 2 },
+  { name: "Heinrich Klaasen", role: "Wicketkeeper", country: "South Africa", basePrice: 2 },
+  { name: "Nicholas Pooran", role: "Wicketkeeper", country: "West Indies", basePrice: 1 },
+  { name: "Andre Russell", role: "All-rounder", country: "West Indies", basePrice: 1 },
+  { name: "Sunil Narine", role: "All-rounder", country: "West Indies", basePrice: 1 },
+  { name: "Jos Buttler", role: "Wicketkeeper", country: "England", basePrice: 2 },
+  { name: "Phil Salt", role: "Wicketkeeper", country: "England", basePrice: 1 },
+  { name: "Mitchell Starc", role: "Bowler", country: "Australia", basePrice: 2 }
+];
+
+let selectedFranchise = "CSK";
+let currentRoom = null;
+let myTeam = null;
+let isHost = false;
+let currentPlayer = null;
+let currentBid = 0;
+let highestBidder = null;
+
+const $ = id => document.getElementById(id);
+
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.style.display = "block";
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => {
+    el.style.display = "none";
+  }, 2800);
+}
+
+function showScreen(screen) {
+  ["homeScreen", "lobbyScreen", "auctionScreen"].forEach(id => {
+    $(id).classList.add("hidden");
+  });
+  $(screen).classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+socket.on("connect", () => {
+  $("connectionText").textContent = "CONNECTED";
+  refreshRooms();
+});
+
+socket.on("disconnect", () => {
+  $("connectionText").textContent = "RECONNECTING";
+  toast("Connection lost. Reconnecting...");
+});
+
+socket.on("connect_error", () => {
+  $("connectionText").textContent = "CONNECTION ERROR";
+});
+
+function renderFranchises() {
+  $("franchiseGrid").innerHTML = franchises.map(t => `
+    <button class="team ${t.abbr === selectedFranchise ? "selected" : ""}"
+      onclick="selectFranchise('${t.abbr}')">
+      <span class="abbr">${t.abbr}</span>
+      <span class="full">${t.name}</spa
